@@ -14,32 +14,49 @@ namespace DGD208_Spring2025
         private List<Item> items;
         private Menu mainMenu;
         private bool isRunning;
-        private const int CRITICAL_STAT_THRESHOLD = 20;
-        private bool isGameActive;
+        private readonly int[] WARNING_THRESHOLDS = { 20, 15, 10, 5 };
+        private Dictionary<Pet, Dictionary<PetStat, int>> lastWarningLevels;
 
         public Game()
         {
             pets = new List<Pet>();
             items = new List<Item>();
+            lastWarningLevels = new Dictionary<Pet, Dictionary<PetStat, int>>();
             InitializeItems();
-            InitializeMainMenu();
-            isGameActive = false;
+            InitializeMenus();
         }
 
         private void InitializeItems()
         {
-            items.Add(new Item("Dog Food", ItemType.Food, 20, new[] { PetType.Dog }, new[] { PetStat.Hunger }));
-            items.Add(new Item("Cat Toy", ItemType.Toy, 15, new[] { PetType.Cat }, new[] { PetStat.Fun }));
-            items.Add(new Item("Bird Seed", ItemType.Food, 15, new[] { PetType.Bird }, new[] { PetStat.Hunger }));
-            items.Add(new Item("Fish Flakes", ItemType.Food, 10, new[] { PetType.Fish }, new[] { PetStat.Hunger }));
-            items.Add(new Item("Rabbit Carrot", ItemType.Food, 15, new[] { PetType.Rabbit }, new[] { PetStat.Hunger }));
-            items.Add(new Item("Pet Bed", ItemType.Bed, 25, Enum.GetValues<PetType>(), new[] { PetStat.Sleep }));
-            items.Add(new Item("Ball", ItemType.Toy, 20, new[] { PetType.Dog, PetType.Cat }, new[] { PetStat.Fun }));
+            // Köpek için itemler
+            items.Add(new Item("Köpek Maması", 20, new[] { PetStat.Hunger }, new[] { PetType.Dog }));
+            items.Add(new Item("Köpek Yatağı", 20, new[] { PetStat.Sleep }, new[] { PetType.Dog }));
+            items.Add(new Item("Köpek Topu", 20, new[] { PetStat.Fun }, new[] { PetType.Dog }));
+
+            // Kedi için itemler
+            items.Add(new Item("Kedi Maması", 20, new[] { PetStat.Hunger }, new[] { PetType.Cat }));
+            items.Add(new Item("Kedi Yatağı", 20, new[] { PetStat.Sleep }, new[] { PetType.Cat }));
+            items.Add(new Item("Kedi Oyuncağı", 20, new[] { PetStat.Fun }, new[] { PetType.Cat }));
+
+            // Kuş için itemler
+            items.Add(new Item("Kuş Yemi", 20, new[] { PetStat.Hunger }, new[] { PetType.Bird }));
+            items.Add(new Item("Kuş Yuvası", 20, new[] { PetStat.Sleep }, new[] { PetType.Bird }));
+            items.Add(new Item("Kuş Oyuncağı", 20, new[] { PetStat.Fun }, new[] { PetType.Bird }));
+
+            // Balık için itemler
+            items.Add(new Item("Balık Yemi", 20, new[] { PetStat.Hunger }, new[] { PetType.Fish }));
+            items.Add(new Item("Balık Yuvası", 20, new[] { PetStat.Sleep }, new[] { PetType.Fish }));
+            items.Add(new Item("Balık Oyuncağı", 20, new[] { PetStat.Fun }, new[] { PetType.Fish }));
+
+            // Tavşan için itemler
+            items.Add(new Item("Havuç", 20, new[] { PetStat.Hunger }, new[] { PetType.Rabbit }));
+            items.Add(new Item("Tavşan Yuvası", 20, new[] { PetStat.Sleep }, new[] { PetType.Rabbit }));
+            items.Add(new Item("Tavşan Oyuncağı", 20, new[] { PetStat.Fun }, new[] { PetType.Rabbit }));
         }
 
-        private void InitializeMainMenu()
+        private void InitializeMenus()
         {
-            mainMenu = new Menu("Pet Simulator", new List<string>
+            mainMenu = new Menu("Ana Menü", new List<string>
             {
                 "Adopt a Pet",
                 "View Pets",
@@ -54,9 +71,7 @@ namespace DGD208_Spring2025
             isRunning = true;
             while (isRunning)
             {
-                isGameActive = false;
                 int choice = mainMenu.Display();
-                isGameActive = true;
                 await ProcessChoiceAsync(choice);
             }
         }
@@ -93,14 +108,26 @@ namespace DGD208_Spring2025
             PetType selectedType = petTypes[choice - 1];
 
             Console.Write("Enter pet name: ");
-            string name = Console.ReadLine();
+            string? name = Console.ReadLine();
+            if (string.IsNullOrEmpty(name))
+            {
+                Console.WriteLine("Invalid name!");
+                return;
+            }
 
             var pet = new Pet(name, selectedType);
             pet.PetDied += OnPetDied;
             pet.StatChanged += OnPetStatChanged;
             pets.Add(pet);
 
-            _ = pet.DecreaseStatsAsync(isGameActive); // Start the stat decrease loop
+            // Initialize warning levels for the new pet
+            lastWarningLevels[pet] = new Dictionary<PetStat, int>();
+            foreach (PetStat stat in Enum.GetValues<PetStat>())
+            {
+                lastWarningLevels[pet][stat] = 100; // Start above all thresholds
+            }
+
+            _ = pet.DecreaseStatsAsync(); // Start the stat decrease loop
             Console.WriteLine($"\n{name} has been adopted!");
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
@@ -114,7 +141,7 @@ namespace DGD208_Spring2025
             }
             else
             {
-                Console.WriteLine("\nYour Pets:");
+                Console.WriteLine($"\nYour Pets (Last Update: {DateTime.Now:HH:mm:ss}):");
                 foreach (var pet in pets)
                 {
                     Console.WriteLine($"\n{pet.Name} ({pet.Type})");
@@ -170,27 +197,35 @@ namespace DGD208_Spring2025
             Console.ReadKey();
         }
 
-        private void OnPetDied(object sender, EventArgs e)
+        private void OnPetDied(object? sender, EventArgs e)
         {
-            var pet = (Pet)sender;
-            pets.Remove(pet);
-            Console.WriteLine($"\n{pet.Name} has died! :(");
-            Console.WriteLine("Press any key to continue...");
-            Console.ReadKey();
-        }
-
-        private void OnPetStatChanged(object sender, PetStat stat)
-        {
-            var pet = (Pet)sender;
-            int currentValue = pet.Stats[stat];
-
-            if (currentValue <= CRITICAL_STAT_THRESHOLD)
+            if (sender is Pet pet)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"\n⚠️ WARNING: {pet.Name}'s {stat} is critically low ({currentValue}%)!");
-                Console.ResetColor();
+                pets.Remove(pet);
+                lastWarningLevels.Remove(pet);
+                Console.WriteLine($"\n{pet.Name} has died! :(");
                 Console.WriteLine("Press any key to continue...");
                 Console.ReadKey();
+            }
+        }
+
+        private void OnPetStatChanged(object? sender, PetStat stat)
+        {
+            if (sender is Pet pet)
+            {
+                int currentValue = pet.Stats[stat];
+                int lastWarningLevel = lastWarningLevels[pet][stat];
+
+                // Find the highest threshold that we've crossed
+                int newWarningLevel = WARNING_THRESHOLDS.FirstOrDefault(t => currentValue <= t && lastWarningLevel > t);
+
+                if (newWarningLevel > 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"\n⚠️ WARNING: {pet.Name}'s {stat} is at {currentValue}%!");
+                    Console.ResetColor();
+                    lastWarningLevels[pet][stat] = newWarningLevel;
+                }
             }
         }
     }

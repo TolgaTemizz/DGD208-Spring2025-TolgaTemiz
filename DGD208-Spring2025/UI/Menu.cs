@@ -26,12 +26,19 @@ namespace DGD208_Spring2025.UI
 
             while (true)
             {
-                Console.Write("\nEnter your choice: ");
-                if (int.TryParse(Console.ReadLine(), out int choice) && choice >= 1 && choice <= options.Count)
+                if (Console.KeyAvailable)
                 {
-                    return choice;
+                    var key = Console.ReadKey(true);
+                    if (char.IsDigit(key.KeyChar))
+                    {
+                        int choice = int.Parse(key.KeyChar.ToString());
+                        if (choice >= 1 && choice <= options.Count)
+                        {
+                            return choice;
+                        }
+                    }
                 }
-                Console.WriteLine("Invalid choice. Please try again.");
+                System.Threading.Thread.Sleep(100); // Kısa bir bekleme ile CPU kullanımını azalt
             }
         }
     }

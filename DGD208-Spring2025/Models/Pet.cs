@@ -10,8 +10,8 @@ namespace DGD208_Spring2025.Models
         public string Name { get; private set; }
         public PetType Type { get; private set; }
         public Dictionary<PetStat, int> Stats { get; private set; }
-        public event EventHandler<PetStat> StatChanged;
-        public event EventHandler PetDied;
+        public event EventHandler<PetStat>? StatChanged;
+        public event EventHandler? PetDied;
 
         public Pet(string name, PetType type)
         {
@@ -25,15 +25,10 @@ namespace DGD208_Spring2025.Models
             };
         }
 
-        public async Task DecreaseStatsAsync(bool isGameActive)
+        public async Task DecreaseStatsAsync()
         {
             while (true)
             {
-                await Task.Delay(3000); // Decrease stats every 3 seconds
-                
-                if (!isGameActive)
-                    continue;
-
                 foreach (var stat in Stats.Keys.ToList())
                 {
                     Stats[stat] = Math.Max(0, Stats[stat] - 1);
@@ -45,6 +40,8 @@ namespace DGD208_Spring2025.Models
                         return;
                     }
                 }
+
+                await Task.Delay(1000);
             }
         }
 
