@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.IO;
 using DGD208_Spring2025.Enums;
 using DGD208_Spring2025.Models;
 using DGD208_Spring2025.UI;
@@ -16,6 +18,7 @@ namespace DGD208_Spring2025
         private bool isRunning;
         private readonly int[] WARNING_THRESHOLDS = { 20, 15, 10, 5 };
         private Dictionary<Pet, Dictionary<PetStat, int>> lastWarningLevels;
+        private const string SAVE_FILE = "pets_save.json";
 
         public Game()
         {
@@ -61,6 +64,8 @@ namespace DGD208_Spring2025
                 "Adopt a Pet",
                 "View Pets",
                 "Use Item",
+                "Save Game",
+                "Load Game",
                 "Display Creator Info",
                 "Exit"
             });
@@ -90,9 +95,15 @@ namespace DGD208_Spring2025
                     UseItem();
                     break;
                 case 4:
-                    DisplayCreatorInfo();
+                    SaveGame();
                     break;
                 case 5:
+                    LoadGame();
+                    break;
+                case 6:
+                    DisplayCreatorInfo();
+                    break;
+                case 7:
                     isRunning = false;
                     break;
             }
@@ -144,10 +155,50 @@ namespace DGD208_Spring2025
                 Console.WriteLine($"\nYour Pets (Last Update: {DateTime.Now:HH:mm:ss}):");
                 foreach (var pet in pets)
                 {
-                    Console.WriteLine($"\n{pet.Name} ({pet.Type})");
+                    bool hasLowStats = pet.Stats.Values.Any(stat => stat < 30);
+                    Console.WriteLine($"\n{pet.Name} ({pet.Type}) {(hasLowStats ? "):" : "(:")}");
+                    
+                    // Display ASCII art based on pet type
+                    switch (pet.Type)
+                    {
+                        case PetType.Dog:
+                            Console.WriteLine(@"  / \__");
+                            Console.WriteLine(@" (    @\___");
+                            Console.WriteLine(@" /         O");
+                            Console.WriteLine(@"/   (_____/");
+                            Console.WriteLine(@"/_____/   U");
+                            break;
+                        case PetType.Cat:
+                            Console.WriteLine(@" /\_/\");
+                            Console.WriteLine(@"( o.o )");
+                            Console.WriteLine(@" > ^ <");
+                            break;
+                        case PetType.Bird:
+                            Console.WriteLine(@"              __");
+                            Console.WriteLine(@"             /'{>");
+                            Console.WriteLine(@"         ____) (____");
+                            Console.WriteLine(@"       //'--;   ;--'\\");
+                            Console.WriteLine(@"      ///////\_/\\\\\\\");
+                            Console.WriteLine(@"jgs          m m");
+                            break;
+                        case PetType.Fish:
+                            Console.WriteLine(@"               O  o");
+                            Console.WriteLine(@"          _\_   o");
+                            Console.WriteLine(@">('>   \\/  o\ .");
+                            Console.WriteLine(@"       //\___=");
+                            Console.WriteLine(@"          ''");
+                            break;
+                        case PetType.Rabbit:
+                            Console.WriteLine(@"  (\_/)");
+                            Console.WriteLine(@" (='.'=)");
+                            Console.WriteLine(@"("")_("")");
+                            break;
+                    }
+                    
+                    Console.WriteLine("\nStats:");
                     foreach (var stat in pet.Stats)
                     {
-                        string statBar = new string('█', stat.Value / 10) + new string('░', 10 - (stat.Value / 10));
+                        string statBar = new string('*', stat.Value / 10) + new string('.', 10 - (stat.Value / 10));
                         Console.WriteLine($"{stat.Key}: [{statBar}] {stat.Value}%");
                     }
                 }
@@ -177,6 +228,36 @@ namespace DGD208_Spring2025
 
             try
             {
+                // Display item ASCII art based on item name
+                Console.WriteLine("\nUsing item:");
+                if (selectedItem.Name.Contains("Maması") || selectedItem.Name.Contains("Yemi") || selectedItem.Name == "Havuç")
+                {
+                    Console.WriteLine(@"   ___");
+                    Console.WriteLine(@"  /   \");
+                    Console.WriteLine(@" /     \");
+                    Console.WriteLine(@"/       \");
+                    Console.WriteLine(@"\       /");
+                    Console.WriteLine(@" \_____/");
+                }
+                else if (selectedItem.Name.Contains("Yatağı") || selectedItem.Name.Contains("Yuvası"))
+                {
+                    Console.WriteLine(@"  ______");
+                    Console.WriteLine(@" /      \");
+                    Console.WriteLine(@"/        \");
+                    Console.WriteLine(@"|        |");
+                    Console.WriteLine(@"|        |");
+                    Console.WriteLine(@" \______/");
+                }
+                else if (selectedItem.Name.Contains("Topu") || selectedItem.Name.Contains("Oyuncağı"))
+                {
+                    Console.WriteLine(@"    ____");
+                    Console.WriteLine(@"   /    \");
+                    Console.WriteLine(@"  /      \");
+                    Console.WriteLine(@" /        \");
+                    Console.WriteLine(@" \        /");
+                    Console.WriteLine(@"  \______/");
+                }
+
                 selectedPet.UseItem(selectedItem);
                 Console.WriteLine($"\nUsed {selectedItem.Name} on {selectedPet.Name}!");
             }
@@ -227,6 +308,115 @@ namespace DGD208_Spring2025
                     lastWarningLevels[pet][stat] = newWarningLevel;
                 }
             }
+        }
+
+        private void SaveGame()
+        {
+            try
+            {
+                var saveData = new SaveData
+                {
+                    Pets = pets.Select(p => new PetData
+                    {
+                        Name = p.Name,
+                        Type = p.Type.ToString(),
+                        Stats = p.Stats.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value)
+                    }).ToList()
+                };
+
+                string jsonString = JsonSerializer.Serialize(saveData, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(SAVE_FILE, jsonString);
+                Console.WriteLine("\nGame saved successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nError saving game: {ex.Message}");
+            }
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+        }
+
+        private void LoadGame()
+        {
+            try
+            {
+                if (!File.Exists(SAVE_FILE))
+                {
+                    Console.WriteLine("\nNo save file found!");
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
+                    return;
+                }
+
+                string jsonString = File.ReadAllText(SAVE_FILE);
+                var saveData = JsonSerializer.Deserialize<SaveData>(jsonString);
+
+                if (saveData?.Pets == null)
+                {
+                    Console.WriteLine("\nInvalid save file!");
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
+                    return;
+                }
+
+                // Clear current pets
+                pets.Clear();
+                lastWarningLevels.Clear();
+
+                // Load pets from save data
+                foreach (var petData in saveData.Pets)
+                {
+                    if (!Enum.TryParse<PetType>(petData.Type, out var petType))
+                    {
+                        Console.WriteLine($"\nInvalid pet type in save file: {petData.Type}");
+                        continue;
+                    }
+
+                    var pet = new Pet(petData.Name, petType);
+                    
+                    // Restore stats
+                    foreach (var stat in petData.Stats)
+                    {
+                        if (Enum.TryParse<PetStat>(stat.Key, out var statType))
+                        {
+                            pet.Stats[statType] = stat.Value;
+                        }
+                    }
+
+                    pet.PetDied += OnPetDied;
+                    pet.StatChanged += OnPetStatChanged;
+                    pets.Add(pet);
+
+                    // Initialize warning levels
+                    lastWarningLevels[pet] = new Dictionary<PetStat, int>();
+                    foreach (PetStat stat in Enum.GetValues<PetStat>())
+                    {
+                        lastWarningLevels[pet][stat] = pet.Stats[stat];
+                    }
+
+                    _ = pet.DecreaseStatsAsync();
+                }
+
+                Console.WriteLine("\nGame loaded successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nError loading game: {ex.Message}");
+            }
+            Console.WriteLine("Press any key to continue...");
+            Console.ReadKey();
+        }
+
+        private class SaveData
+        {
+            public List<PetData> Pets { get; set; } = new List<PetData>();
+        }
+
+        private class PetData
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Type { get; set; } = string.Empty;
+            public Dictionary<string, int> Stats { get; set; } = new Dictionary<string, int>();
         }
     }
 } 

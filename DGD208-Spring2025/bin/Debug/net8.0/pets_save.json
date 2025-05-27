@@ -1,0 +1,13 @@
+{
+  "Pets": [
+    {
+      "Name": "dddd",
+      "Type": "Dog",
+      "Stats": {
+        "Hunger": 42,
+        "Sleep": 42,
+        "Fun": 42
+      }
+    }
+  ]
+}

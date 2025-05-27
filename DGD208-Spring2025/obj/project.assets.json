@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\W11\\Desktop\\CURSOR1\\PetSimulator\\PetSimulator.csproj",
+      "projectUniqueName": "C:\\Users\\W11\\Desktop\\CURSOR1\\DGD208-Spring2025\\PetSimulator.csproj",
       "projectName": "PetSimulator",
-      "projectPath": "C:\\Users\\W11\\Desktop\\CURSOR1\\PetSimulator\\PetSimulator.csproj",
+      "projectPath": "C:\\Users\\W11\\Desktop\\CURSOR1\\DGD208-Spring2025\\PetSimulator.csproj",
       "packagesPath": "C:\\Users\\W11\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\W11\\Desktop\\CURSOR1\\PetSimulator\\obj\\",
+      "outputPath": "C:\\Users\\W11\\Desktop\\CURSOR1\\DGD208-Spring2025\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
