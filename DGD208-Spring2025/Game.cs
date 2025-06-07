@@ -129,6 +129,7 @@ namespace DGD208_Spring2025
             var pet = new Pet(name, selectedType);
             pet.PetDied += OnPetDied;
             pet.StatChanged += OnPetStatChanged;
+            pet.LevelUp += OnPetLevelUp;
             pets.Add(pet);
 
             // Initialize warning levels for the new pet
@@ -156,7 +157,7 @@ namespace DGD208_Spring2025
                 foreach (var pet in pets)
                 {
                     bool hasLowStats = pet.Stats.Values.Any(stat => stat < 30);
-                    Console.WriteLine($"\n{pet.Name} ({pet.Type}) {(hasLowStats ? "):" : "(:")}");
+                    Console.WriteLine($"\n{pet.Name} ({pet.Type}) Lvl{pet.Level} {(hasLowStats ? "):" : "(:")}");
                     
                     // Display ASCII art based on pet type
                     switch (pet.Type)
@@ -310,6 +311,16 @@ namespace DGD208_Spring2025
             }
         }
 
+        private void OnPetLevelUp(object? sender, int newLevel)
+        {
+            if (sender is Pet pet)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"\n🎉 {pet.Name} has reached Lvl{newLevel}! 🎉");
+                Console.ResetColor();
+            }
+        }
+
         private void SaveGame()
         {
             try
@@ -320,6 +331,7 @@ namespace DGD208_Spring2025
                     {
                         Name = p.Name,
                         Type = p.Type.ToString(),
+                        Level = p.Level,
                         Stats = p.Stats.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value)
                     }).ToList()
                 };
@@ -373,6 +385,7 @@ namespace DGD208_Spring2025
                     }
 
                     var pet = new Pet(petData.Name, petType);
+                    pet.LoadLevel(petData.Level);
                     
                     // Restore stats
                     foreach (var stat in petData.Stats)
@@ -385,6 +398,7 @@ namespace DGD208_Spring2025
 
                     pet.PetDied += OnPetDied;
                     pet.StatChanged += OnPetStatChanged;
+                    pet.LevelUp += OnPetLevelUp;
                     pets.Add(pet);
 
                     // Initialize warning levels
@@ -416,6 +430,7 @@ namespace DGD208_Spring2025
         {
             public string Name { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
+            public int Level { get; set; }
             public Dictionary<string, int> Stats { get; set; } = new Dictionary<string, int>();
         }
     }

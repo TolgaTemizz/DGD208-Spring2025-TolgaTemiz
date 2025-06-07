@@ -10,13 +10,16 @@ namespace DGD208_Spring2025.Models
         public string Name { get; private set; }
         public PetType Type { get; private set; }
         public Dictionary<PetStat, int> Stats { get; private set; }
+        public int Level { get; private set; }
         public event EventHandler<PetStat>? StatChanged;
         public event EventHandler? PetDied;
+        public event EventHandler<int>? LevelUp;
 
         public Pet(string name, PetType type)
         {
             Name = name;
             Type = type;
+            Level = 1;
             Stats = new Dictionary<PetStat, int>
             {
                 { PetStat.Hunger, 50 },
@@ -25,8 +28,14 @@ namespace DGD208_Spring2025.Models
             };
         }
 
+        public void LoadLevel(int level)
+        {
+            Level = level;
+        }
+
         public async Task DecreaseStatsAsync()
         {
+            int secondsAlive = 0;
             while (true)
             {
                 foreach (var stat in Stats.Keys.ToList())
@@ -39,6 +48,13 @@ namespace DGD208_Spring2025.Models
                         PetDied?.Invoke(this, EventArgs.Empty);
                         return;
                     }
+                }
+
+                secondsAlive++;
+                if (secondsAlive >= 20)
+                {
+                    secondsAlive = 0;
+                    LevelUp?.Invoke(this, ++Level);
                 }
 
                 await Task.Delay(1000);

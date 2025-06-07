@@ -1,12 +1,13 @@
 {
   "Pets": [
     {
-      "Name": "dddd",
+      "Name": "fdfd",
       "Type": "Dog",
+      "Level": 6,
       "Stats": {
-        "Hunger": 42,
-        "Sleep": 42,
-        "Fun": 42
+        "Hunger": 57,
+        "Sleep": 37,
+        "Fun": 37
       }
     }
   ]
